@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Recharge Card Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans+SC&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(to right, #ff0000 0%, #ff0000 24.9%, #ffff00 25%, #ffff00 49.9%, #00ff00 50%, #00ff00 74.9%, #94dc04 75%, #94dc04 100%);
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      font-family: 'alumni sans sc', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background: rgba(254, 254, 254, 0.8);
+      backdrop-filter: blur(4px);
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 80%;
+      max-width: 800px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      max-height: 95vh;
+      overflow-y: auto;
+    }
+
+    .isp-box {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .isp {
+      border: 2px solid gray;
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 100px;
+      text-align: center;
+    }
+
+    .isp:hover {
+      transform: scale(1.05);
+      border-color: green;
+    }
+
+    .isp.selected {
+      border-color: green;
+      background-color: #eaffea;
+    }
+
+    .isp img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+    }
+
+    select, input, button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #aaa;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    button {
+      background-color: green;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: darkgreen;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #666;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #f0f0f0;
+      color: green;
+    }
+
+    td.used {
+      color: red;
+      font-weight: bold;
+    }
+
+    td.unused {
+      color: green;
+    }
+
+    #mypin {
+      font-size: 20px;
+      color: green;
+    }
+
+    .alert-box {
+      padding: 10px 15px;
+      border-radius: 8px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .alert-success {
+      background-color: #e6ffe6;
+      color: green;
+      border: 1px solid green;
+    }
+
+    .alert-error {
+      background-color: #ffe6e6;
+      color: red;
+      border: 1px solid red;
+    }
+
+    @media (max-width: 600px) {
+      .isp {
+        width: 80px;
+        font-size: 14px;
+      }
+
+      .isp img {
+        width: 40px;
+        height: 40px;
+      }
+
+      th, td {
+        font-size: 12px;
+      }
+
+      select, input, button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="font-size: 50px;">Recharge Card Generator</h2>
+
+    <div class="isp-box">
+      <div class="isp" onclick="selectProvider('MTN')" id="mtn">
+        <img src="../../../../../../Downloads/mtn.png" alt="MTN"><br>
+      </div>
+      <div class="isp" onclick="selectProvider('GLO')" id="glo">
+        <img class="glo" src="../../../../../../Downloads/glo-removebg-preview.png" alt="GLO"><br>
+      </div>
+      <div class="isp" onclick="selectProvider('AIRTEL')" id="airtel">
+        <img class="airtel" src="../../../../../../Downloads/airtel-removebg-preview.png" alt="AIRTEL"><br>
+      </div>
+      <div class="isp" onclick="selectProvider('9MOBILE')" id="9mobile">
+        <img src="../../../../../../Downloads/9mobile.jpg" alt="9MOBILE"><br>
+      </div>
+    </div>
+
+    <select id="Amount">
+      <option value="">Choose Amount</option>
+      <option value="100">100</option>
+      <option value="200">200</option>
+      <option value="500">500</option>
+      <option value="1000">1000</option>
+      <option value="2000">2000</option>
+      <option value="5000">5000</option>
+      <option value="10000">10000</option>
+    </select>
+
+    <p id="mypin"></p>
+    <button onclick="generatePin()">Generate Pin</button>
+
+    <input type="text" id="myCode" placeholder="Dial *311*𝐏𝐈𝐍#">
+    <button onclick="loadCard()">Load Card</button>
+
+    <div id="alertMsg"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>S/N</th>
+          <th>Provider</th>
+          <th>Amount</th>
+          <th>PIN</th>
+          <th>Validity</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    var cards = [];
+    var sn = 0;
+    var selectedProvider = "";
+
+    function showMessage(msg, type) {
+      var alertBox = document.getElementById("alertMsg");
+      var className = "alert-box ";
+      if (type === "success") {
+        className = className + "alert-success";
+      } else {
+        className = className + "alert-error";
+      }
+
+      alertBox.innerHTML = '<div class="' + className + '">' + msg + '</div>';
+    }
+
+    function selectProvider(provider) {
+      selectedProvider = provider;
+
+      var all = document.querySelectorAll(".isp");
+      var i = 0;
+      while (i < all.length) {
+        all[i].classList.remove("selected");
+        i = i + 1;
+      }
+
+      var div = document.getElementById(provider.toLowerCase());
+      if (div) {
+        div.classList.add("selected");
+      }
+    }
+
+    function generatePin() {
+      var amount = document.getElementById("Amount").value;
+
+      if (selectedProvider === "" || amount === "") {
+        showMessage("Please select both provider and amount", "error");
+        return;
+      }
+
+      var pin = "";
+      var i = 0;
+      while (i < 12) {
+        pin = pin + Math.floor(Math.random() * 10);
+        i = i + 1;
+      }
+
+      sn = sn + 1;
+
+      var card = {
+        sn: sn,
+        provider: selectedProvider,
+        amount: amount,
+        pin: pin,
+        used: false
+      };
+
+      cards.push(card);
+
+      document.getElementById("mypin").innerText = "PIN: " + pin;
+      document.getElementById("Amount").value = "";
+
+      var tbody = document.getElementById("tbody");
+      tbody.innerHTML = tbody.innerHTML +
+        "<tr>" +
+          "<td>" + sn + "</td>" +
+          "<td>" + selectedProvider + "</td>" +
+          "<td>" + amount + "</td>" +
+          "<td>" + pin + "</td>" +
+          "<td class='unused'>UNUSED</td>" +
+        "</tr>";
+    }
+    
+    function loadCard() {
+      var input = document.getElementById("myCode").value.trim();
+
+      if (selectedProvider === "") {
+        showMessage("Please select provider first", "error");
+        return;
+      }
+
+      var match = input.match(/\*\d+\*(\d{12})#?/);
+      if (!match) {
+        showMessage("Invalid code. Format: *311*123456789012#", "error");
+        return;
+      }
+
+      var pinInput = match[1];
+      var found = false;
+      var i = 0;
+
+      while (i < cards.length) {
+        var c = cards[i];
+        if (c.pin === pinInput && c.provider === selectedProvider && c.used === false) {
+          c.used = true;
+          found = true;
+
+          var rows = document.querySelectorAll("#tbody tr");
+          var j = 0;
+
+          while (j < rows.length) {
+            var pinText = rows[j].children[3].innerText;
+            if (pinText === pinInput) {
+              rows[j].children[4].innerText = "USED";
+              rows[j].children[4].classList.remove("unused");
+              rows[j].children[4].classList.add("used");
+            }
+            j = j + 1;
+          }
+        }
+        i = i + 1;
+      }
+
+      if (found === true) {
+        showMessage("Card loaded successfully!", "success");
+      } else {
+        showMessage("Card used, invalid or incorrect ISP.", "error");
+      }
+    }
+  </script>
+</body>
+</html>
